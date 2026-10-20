@@ -1,0 +1,74 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         String   @default("user") // "user" | "admin"
+  createdAt    DateTime @default(now())
+}
+
+model Faculty {
+  id             Int          @id @default(autoincrement())
+  name           String
+  email          String       @unique
+  department     String
+  employmentType String // "full-time" | "part-time" | "adjunct"
+  maxLoad        Float // contracted max load hours per term
+  assignments    Assignment[]
+  createdAt      DateTime     @default(now())
+}
+
+model Course {
+  id          Int       @id @default(autoincrement())
+  code        String    @unique // e.g. "CS101"
+  title       String
+  creditHours Float
+  department  String
+  sections    Section[]
+  createdAt   DateTime  @default(now())
+}
+
+model Term {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique // e.g. "Fall 2026"
+  startDate DateTime
+  endDate   DateTime
+  sections  Section[]
+  createdAt DateTime  @default(now())
+}
+
+model Section {
+  id            Int          @id @default(autoincrement())
+  sectionNumber String // e.g. "001"
+  courseId      Int
+  course        Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  termId        Int
+  term          Term         @relation(fields: [termId], references: [id], onDelete: Cascade)
+  capacity      Int?
+  assignments   Assignment[]
+  createdAt     DateTime     @default(now())
+
+  @@unique([courseId, termId, sectionNumber])
+}
+
+model Assignment {
+  id        Int      @id @default(autoincrement())
+  facultyId Int
+  faculty   Faculty  @relation(fields: [facultyId], references: [id], onDelete: Cascade)
+  sectionId Int
+  section   Section  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  role      String   @default("primary") // "primary" | "co-instructor"
+  loadHours Float // hours counted toward this faculty member's load
+  createdAt DateTime @default(now())
+
+  @@unique([facultyId, sectionId])
+}
